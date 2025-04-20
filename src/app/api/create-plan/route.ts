@@ -60,8 +60,16 @@ export async function POST(request: Request) {
     // Store the plan in Upstash Redis. TTL can be added if needed (e.g., 1 year)
     // const oneYearInSeconds = 365 * 24 * 60 * 60;
     console.log(`Attempting to store plan with ID ${planId} in Upstash Redis...`); // Updated log
-    await redis.set(planId, JSON.stringify(plan)); // Use redis.set and stringify the plan
-    // Consider adding expiration: await redis.set(planId, JSON.stringify(plan), { ex: oneYearInSeconds });
+    
+    // Add log to check the type and value before storing
+    console.log(`Type of plan before stringify: ${typeof plan}`);
+    const planJsonString = JSON.stringify(plan);
+    console.log(`Plan data string (first 200 chars): ${planJsonString.substring(0, 200)}`);
+    
+    // Use the pre-stringified value
+    await redis.set(planId, planJsonString); // Use redis.set and stringify the plan
+    // Consider adding expiration: await redis.set(planId, planJsonString, { ex: oneYearInSeconds });
+    
     console.log(`Successfully stored plan with ID ${planId} in Upstash Redis.`); // Updated log
 
     // --- Return Success Response --- 

@@ -54,6 +54,7 @@ export function generatePlan(input: PlanInput): FullPlan {
       // Throwing an error is safer to indicate bad input.
       throw new Error("Invalid start date format. Please use YYYY-MM-DD.");
   }
+  // eslint-disable-next-line prefer-const -- currentDate object is mutated in loops, so let is semantically correct
   let currentDate = startDateInput;
   
   let currentWeekNumber = 1;
