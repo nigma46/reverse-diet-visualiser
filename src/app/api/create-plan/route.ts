@@ -59,13 +59,13 @@ export async function POST(request: Request) {
 
     // Store the plan in Upstash Redis. TTL can be added if needed (e.g., 1 year)
     // const oneYearInSeconds = 365 * 24 * 60 * 60;
-    console.log(`Attempting to store plan object with ID ${planId} in Upstash Redis (letting SDK handle serialization)...`); // Updated log
+    console.log(`Attempting to store plan object with ID ${planId} using redis.set<FullPlan>(...)`); // Updated log
     
-    // Pass the raw plan object; the SDK should stringify it automatically for the REST API.
-    await redis.set(planId, plan); 
-    // Consider adding expiration: await redis.set(planId, plan, { ex: oneYearInSeconds });
+    // Pass the raw plan object, explicitly typing it for the set command
+    await redis.set<FullPlan>(planId, plan); 
+    // Consider adding expiration: await redis.set<FullPlan>(planId, plan, { ex: oneYearInSeconds });
     
-    console.log(`Successfully stored plan with ID ${planId} in Upstash Redis.`); // Log remains the same
+    console.log(`Successfully stored plan with ID ${planId} in Upstash Redis.`);
 
     // --- Return Success Response --- 
     console.log("--- Create Plan API Route SUCCESS ---");
