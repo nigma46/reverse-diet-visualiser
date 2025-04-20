@@ -1,5 +1,7 @@
 # Reverse Diet Visualiser - Project Overview
 
+> **IMPORTANT**: This application is located in the `reverse-diet-visualiser` subdirectory of this repository, not in the parent directory. All commands should be run from inside the `reverse-diet-visualiser` directory.
+
 ## 1. Purpose
 
 This web application provides a tool for users to generate and visualize a personalized reverse dieting plan. It guides users through different phases (maintenance, deficit, reverse, new maintenance) based on their inputs and goals, providing weekly calorie targets and estimated progress.
@@ -105,5 +107,6 @@ The application is intended for deployment on Vercel.
 
 *   **Core functionality** (form with start date, plan generation, basic display, charting) is implemented.
 *   **Data Storage:** Uses Upstash Redis via Vercel Marketplace.
-*   **Known Issue:** Plans are successfully created and stored via the API route (`create-plan/route.ts`), using manual `JSON.stringify`, but the plan display page (`plan/[id]/page.tsx`) still fails to retrieve/parse the data correctly, resulting in a 404. The data fetched from Redis appears as the literal string `"[object Object]"` instead of the expected valid JSON string. This occurs despite trying manual `JSON.stringify` on write, SDK automatic serialization (`redis.set(plan)`), explicitly typed SDK serialization (`redis.set<FullPlan>(plan)`), and implementing robust parsing with error logging on read. The root cause of why the Upstash Redis REST API via `@upstash/redis` in Vercel is storing `"[object Object]"` instead of the provided JSON string is still unknown.
+*   **Known Issue #1:** Plans are successfully created and stored via the API route (`create-plan/route.ts`), but the plan display page (`plan/[id]/page.tsx`) fails to retrieve/parse the data correctly, resulting in a 404. The issue appears to be related to how the data is stored in Redis - the API successfully stores the data using `redis.set(planId, planJsonString)`, but when retrieving it with `redis.get<string>(id)`, the value returned is an object rather than a string. This causes the type check `typeof planString !== 'string'` to fail. This might be related to how Upstash Redis client handles data types or serializes/deserializes data.
+*   **Known Issue #2:** The logs show: "Value retrieved from Redis was not a string (type: object). Returning null." This suggests that the Upstash Redis client might be automatically parsing the JSON string into an object during retrieval, while the code expects to receive a string that needs to be manually parsed.
 *   Minor browser console warnings related to CSS parsing (`-webkit-text-size-adjust`, `-moz-osx-font-smoothing`) and font preloading exist but are unrelated to core functionality issues. 

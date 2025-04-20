@@ -22,35 +22,48 @@ interface PlanPageProps {
 
 // Modify getPlanData to use Upstash Redis with robust parsing
 async function getPlanData(id: string): Promise<FullPlan | null> {
-  let planString: string | null | undefined = null; // Variable to hold the raw string
   try {
-    // Get the raw value from Redis (should be a string)
-    planString = await redis.get<string>(id);
-
-    if (typeof planString !== 'string') {
-      console.log(`Plan ID ${id}: Value retrieved from Redis was not a string (type: ${typeof planString}). Returning null.`);
-      return null; // Value is null, undefined, or not a string
-    }
-
-    // Attempt to parse the string
-    try {
-      const plan: FullPlan = JSON.parse(planString);
-      // Optional: Add basic validation if needed (e.g., check if it's an array)
-      if (!Array.isArray(plan)) {
-          console.error(`Plan ID ${id}: Parsed data is not an array.`);
-          return null;
+    // Get the value from Redis
+    const result = await redis.get(id);
+    console.log(`Plan ID ${id}: Retrieved value type: ${typeof result}`, result ? 'Has data' : 'No data');
+    
+    // Handle when result is already an object (Upstash auto-deserialized the JSON)
+    if (result && typeof result === 'object') {
+      // Check if it looks like our plan array
+      if (Array.isArray(result)) {
+        console.log(`Plan ID ${id}: Retrieved data is already an array, using directly.`);
+        return result as FullPlan;
+      } else {
+        console.log(`Plan ID ${id}: Retrieved object is not an array:`, result);
+        return null;
       }
-      return plan; // Successfully parsed
-    } catch (parseError) {
-      // Log the specific parsing error and the problematic string
-      console.error(`Plan ID ${id}: Failed to parse plan data retrieved from Redis. Error:`, parseError);
-      console.error(`Plan ID ${id}: Problematic string data (first 500 chars):`, planString.substring(0, 500));
-      return null; // Parsing failed
     }
+    
+    // Handle string data (manual parsing needed)
+    if (typeof result === 'string') {
+      try {
+        console.log(`Plan ID ${id}: Retrieved string data, parsing JSON.`);
+        const plan = JSON.parse(result);
+        if (Array.isArray(plan)) {
+          return plan as FullPlan;
+        } else {
+          console.log(`Plan ID ${id}: Parsed data is not an array.`);
+          return null;
+        }
+      } catch (parseError) {
+        console.error(`Plan ID ${id}: Failed to parse string data:`, parseError);
+        console.error(`Plan ID ${id}: Problematic string (first 500 chars):`, 
+          typeof result === 'string' ? result.substring(0, 500) : 'Not a string');
+        return null;
+      }
+    }
+    
+    // Handle null/undefined case
+    console.log(`Plan ID ${id}: No data found or data is null/undefined.`);
+    return null;
 
-  } catch (fetchError) {
-    // Log errors during the actual fetch from Redis
-    console.error(`Plan ID ${id}: Error fetching plan data from Upstash Redis:`, fetchError);
+  } catch (error) {
+    console.error(`Plan ID ${id}: Error retrieving or processing data:`, error);
     return null;
   }
 }
