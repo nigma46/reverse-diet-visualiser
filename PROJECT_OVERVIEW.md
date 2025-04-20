@@ -105,10 +105,5 @@ The application is intended for deployment on Vercel.
 
 *   **Core functionality** (form with start date, plan generation, basic display, charting) is implemented.
 *   **Data Storage:** Uses Upstash Redis via Vercel Marketplace.
-*   **Known Issue:** Plans are successfully created and stored (API route returns success), but the plan display page (`/plan/[id]`) fails to retrieve/parse the data correctly, resulting in a 404. The data fetched from Redis appears as `"[object Object]"` instead of valid JSON, despite attempts to store it correctly using both manual `JSON.stringify` and letting the `@upstash/redis` SDK handle serialization. Further investigation needed.
-*   Minor browser console warnings related to CSS parsing (`-webkit-text-size-adjust`, `-moz-osx-font-smoothing`) and font preloading exist but are unrelated to core functionality issues.
-
-*   **Known Issue:** The project is currently experiencing a **build error** when deploying or running `npm run build` locally.
-    *   **Error:** `Type error: Type 'PlanPageProps' does not satisfy the constraint 'PageProps'. Types of property 'params' are incompatible. Type '{ id: string; }' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toSt`
-    *   **Context:** This error occurs specifically in the dynamic plan page (`src/app/plan/[id]/page.tsx`). It seems related to type checking incompatibilities between `async` Server Components, dynamic route parameters, and Next.js's internal `PageProps` type in the current version (Next.js 15.3.1).
-    *   **Attempts:** Various standard fixes (adjusting prop typing, using `NextPage` helper, simplifying prop access) have been attempted but the error persists, indicating a potentially deeper issue or edge case. 
+*   **Known Issue:** Plans are successfully created and stored via the API route (`create-plan/route.ts`), but the plan display page (`plan/[id]/page.tsx`) fails to retrieve/parse the data correctly, resulting in a 404. The data fetched from Redis appears as the literal string `"[object Object]"` instead of valid JSON. This occurs despite trying manual `JSON.stringify`, SDK automatic serialization, and `redis.set<FullPlan>(...)`. Further investigation is needed.
+*   Minor browser console warnings related to CSS parsing (`-webkit-text-size-adjust`, `-moz-osx-font-smoothing`) and font preloading exist but are unrelated to core functionality issues. 

@@ -20,19 +20,37 @@ interface PlanPageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>; // Also handle searchParams if needed
 }
 
-// Modify getPlanData to use Upstash Redis
+// Modify getPlanData to use Upstash Redis with robust parsing
 async function getPlanData(id: string): Promise<FullPlan | null> {
+  let planString: string | null | undefined = null; // Variable to hold the raw string
   try {
-    // Get the stringified plan from Redis
-    const planString = await redis.get<string>(id);
-    if (!planString) {
-      return null; // Plan not found
+    // Get the raw value from Redis (should be a string)
+    planString = await redis.get<string>(id);
+
+    if (typeof planString !== 'string') {
+      console.log(`Plan ID ${id}: Value retrieved from Redis was not a string (type: ${typeof planString}). Returning null.`);
+      return null; // Value is null, undefined, or not a string
     }
-    // Parse the JSON string back into an object
-    const plan: FullPlan = JSON.parse(planString);
-    return plan;
-  } catch (error) {
-    console.error("Error fetching plan data from Upstash Redis:", error);
+
+    // Attempt to parse the string
+    try {
+      const plan: FullPlan = JSON.parse(planString);
+      // Optional: Add basic validation if needed (e.g., check if it's an array)
+      if (!Array.isArray(plan)) {
+          console.error(`Plan ID ${id}: Parsed data is not an array.`);
+          return null;
+      }
+      return plan; // Successfully parsed
+    } catch (parseError) {
+      // Log the specific parsing error and the problematic string
+      console.error(`Plan ID ${id}: Failed to parse plan data retrieved from Redis. Error:`, parseError);
+      console.error(`Plan ID ${id}: Problematic string data (first 500 chars):`, planString.substring(0, 500));
+      return null; // Parsing failed
+    }
+
+  } catch (fetchError) {
+    // Log errors during the actual fetch from Redis
+    console.error(`Plan ID ${id}: Error fetching plan data from Upstash Redis:`, fetchError);
     return null;
   }
 }
