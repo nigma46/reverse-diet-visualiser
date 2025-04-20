@@ -5,8 +5,11 @@ import { generatePlan } from '@/lib/calculations';
 import { PlanInput, FullPlan } from '@/types';
 import { nanoid } from 'nanoid';
 
-// Initialize Upstash Redis client using fromEnv() to automatically read Vercel environment variables
-const redis = Redis.fromEnv();
+// Initialize Upstash Redis client with explicit KV environment variables from Vercel
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL || process.env.KV_URL || '',
+  token: process.env.KV_REST_API_TOKEN || '',
+});
 /* 
 // Previous manual initialization (removed as fromEnv is preferred)
 const redis = new Redis({

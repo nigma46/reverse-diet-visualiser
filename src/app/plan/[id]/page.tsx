@@ -4,15 +4,11 @@ import { FullPlan } from '@/types';
 import { notFound } from 'next/navigation';
 import PlanChart from '@/components/PlanChart';
 
-// Initialize Upstash Redis client using fromEnv() to automatically read Vercel environment variables
-const redis = Redis.fromEnv();
-/*
-// Previous manual initialization (removed as fromEnv is preferred)
+// Initialize Upstash Redis client with explicit KV environment variables from Vercel
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  url: process.env.KV_REST_API_URL || process.env.KV_URL || '',
+  token: process.env.KV_REST_API_TOKEN || '',
 });
-*/
 
 // Define props structure according to Next.js 15 async page changes
 interface PlanPageProps {
