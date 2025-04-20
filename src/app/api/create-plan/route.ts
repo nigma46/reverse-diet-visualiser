@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+// import { kv } from '@vercel/kv'; // Remove old KV import
+import { Redis } from '@upstash/redis'; // Import Upstash Redis client
 import { generatePlan } from '@/lib/calculations';
 import { PlanInput, FullPlan } from '@/types';
 import { nanoid } from 'nanoid';
+
+// Initialize Upstash Redis client using environment variables
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
 export async function POST(request: Request) {
   console.log("--- Create Plan API Route START ---");
@@ -45,24 +52,20 @@ export async function POST(request: Request) {
     const planId = nanoid(10); // Generate a 10-character unique ID
     console.log(`Generated plan ID: ${planId}`);
 
-    // Store the plan in Vercel KV. TTL can be added if needed (e.g., 1 year)
+    // Store the plan in Upstash Redis. TTL can be added if needed (e.g., 1 year)
     // const oneYearInSeconds = 365 * 24 * 60 * 60;
-    console.log(`Attempting to store plan with ID ${planId} in KV...`);
-    await kv.set(planId, plan); //, { ex: oneYearInSeconds });
-    console.log(`Successfully stored plan with ID ${planId} in KV.`);
+    console.log(`Attempting to store plan with ID ${planId} in Upstash Redis...`); // Updated log
+    await redis.set(planId, JSON.stringify(plan)); // Use redis.set and stringify the plan
+    // Consider adding expiration: await redis.set(planId, JSON.stringify(plan), { ex: oneYearInSeconds });
+    console.log(`Successfully stored plan with ID ${planId} in Upstash Redis.`); // Updated log
 
     // --- Return Success Response --- 
     console.log("--- Create Plan API Route SUCCESS ---");
     return NextResponse.json({ planId: planId }, { status: 201 }); // 201 Created
 
   } catch (error) {
-    console.error("--- Create Plan API Route ERROR ---");
+    console.error("--- Create Plan API Route ERROR --- "); // Added space
     console.error("Error creating plan:", error);
-    // Removed unused errorMessage variable assignment
-    // let errorMessage = 'Internal Server Error';
-    // if (error instanceof Error) {
-    //     errorMessage = error.message;
-    // }
     // Avoid leaking detailed internal errors to the client
     return NextResponse.json({ error: 'Failed to create plan.' }, { status: 500 });
   }

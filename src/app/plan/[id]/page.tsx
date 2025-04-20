@@ -1,7 +1,14 @@
-import { kv } from '@vercel/kv';
+// import { kv } from '@vercel/kv'; // Remove old KV import
+import { Redis } from '@upstash/redis'; // Import Upstash Redis client
 import { FullPlan } from '@/types';
 import { notFound } from 'next/navigation';
 import PlanChart from '@/components/PlanChart';
+
+// Initialize Upstash Redis client using environment variables
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
 // Define props structure according to Next.js 15 async page changes
 interface PlanPageProps {
@@ -9,13 +16,19 @@ interface PlanPageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>; // Also handle searchParams if needed
 }
 
-// Restore the async getPlanData function
+// Modify getPlanData to use Upstash Redis
 async function getPlanData(id: string): Promise<FullPlan | null> {
   try {
-    const plan = await kv.get<FullPlan>(id);
+    // Get the stringified plan from Redis
+    const planString = await redis.get<string>(id);
+    if (!planString) {
+      return null; // Plan not found
+    }
+    // Parse the JSON string back into an object
+    const plan: FullPlan = JSON.parse(planString);
     return plan;
   } catch (error) {
-    console.error("Error fetching plan data from KV:", error);
+    console.error("Error fetching plan data from Upstash Redis:", error);
     return null;
   }
 }
@@ -26,9 +39,12 @@ export default async function PlanPage(props: PlanPageProps) {
   const params = await props.params;
   const planId = params.id;
 
+  console.log(`Fetching plan data for ID: ${planId}`); // Add log
   const planData = await getPlanData(planId);
+  console.log(`Fetched plan data: ${planData ? 'Found' : 'Not Found'}`); // Add log
 
   if (!planData) {
+    console.log(`Plan ID ${planId} not found, rendering notFound().`); // Add log
     notFound();
   }
 
