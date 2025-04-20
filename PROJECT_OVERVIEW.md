@@ -158,8 +158,17 @@ These calculations provide users with more realistic expectations for their weig
 *   **Core functionality** (form with start date, plan generation, basic display, charting) is implemented.
 *   **Data Storage:** Uses Upstash Redis via Vercel Marketplace.
 *   **Fixed Issue:** ~~Plans are successfully created and stored via the API route (`create-plan/route.ts`), but the plan display page (`plan/[id]/page.tsx`) fails to retrieve/parse the data correctly, resulting in a 404.~~ This issue has been resolved by updating the Redis client initialization to explicitly use the Vercel KV environment variables and modifying the retrieval code to handle both string and object types returned from Redis.
+*   **Known Issue - Energy Balance Calculation:** We've identified an issue in the calculation of weekly energy balance that's causing incorrect weight predictions. The formula is currently inverted, showing weight gain during what should be a deficit phase. We plan to fix this by:
+    * Correcting the weekly balance formula to: `weeklyBalance = (calories * 7) - (tdee * 7)`
+    * Ensuring this is applied consistently across all phases
+    * Verifying the adaptation factors are applied correctly
+    * Testing with sample inputs to validate expected weight loss/gain patterns
 *   **Data Visualization:** The chart now includes:
-    * Phase background shading to visually distinguish different phases of the diet plan
+    * Phase background shading to visually distinguish different diet phases
     * Extended timeline showing 8 weeks beyond the plan end date
     * Improved text contrast for better readability
+*   **Future Improvements:**
+    * Refine metabolic adaptation parameters based on user feedback
+    * Add additional customization options for advanced users
+    * Implement optional progress tracking functionality
 *   Minor browser console warnings related to CSS parsing (`-webkit-text-size-adjust`, `-moz-osx-font-smoothing`) and font preloading exist but are unrelated to core functionality issues. 
