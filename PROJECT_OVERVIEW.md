@@ -37,6 +37,8 @@ The core idea is to offer a simple, no-login solution where users answer questio
         *   Estimated end weight (kg) over time (line chart on a secondary axis).
         *   Highlights the data points for the current week.
         *   Tooltips show week number, phase name, calories, and weight.
+        *   Background shading that color-codes different diet phases.
+        *   Extended timeline showing 8 weeks beyond the plan end date.
     *   **Detailed Table:** Shows the week-by-week breakdown of dates, phase, calories, TDEE, and weight estimates.
 
 ## 3. Architecture & Technology Stack
@@ -103,10 +105,61 @@ The application is intended for deployment on Vercel.
 7.  The application code uses `Redis.fromEnv()` from `@upstash/redis` to automatically pick up these variables.
 8.  Trigger a deployment.
 
-## 7. Current Status & Known Issues
+## 7. Advanced Weight Loss Modeling
+
+The application implements a sophisticated weight loss prediction model that accounts for real-world metabolic factors:
+
+### Metabolic Adaptation
+* **Implementation:** The model includes a `calculateAdaptationFactor` function that calculates decreasing metabolic rate during extended calorie restriction.
+* **Parameters:** 
+  * `ADAPTATION_RATE = 0.1` (10% adaptation per month)
+  * `MAX_ADAPTATION = 0.25` (Maximum 25% adaptation cap)
+* **Mechanism:** As dieting continues, the body gradually reduces energy expenditure to conserve resources. This metabolic adaptation is modeled as a percentage reduction in TDEE that increases with time spent in a deficit.
+
+### Adaptive TDEE Calculation
+* **Base TDEE:** Calculated using the standard BMR formula (Mifflin-St Jeor) and activity multipliers.
+* **Adaptation Factor:** During deficit phases, TDEE is multiplied by a decreasing factor based on weeks spent in deficit.
+* **Recovery:** During post-deficit phases (maintenance, reverse diet), adaptation gradually recovers at different rates depending on the phase.
+
+### Variable Energy Efficiency
+* **Fat Loss Efficiency:** Efficiency of calorie deficit to fat loss conversion decreases over time:
+  * `efficiencyFactor = Math.max(0.85, 1 - (weekNumber * 0.005))`
+  * Starts at 100% efficiency, decreases by 0.5% per week, with a minimum of 85%
+* **Surplus Efficiency:** The body is more efficient at storing fat than losing it:
+  * 90% efficiency for fat storage during surplus periods (reverse diet)
+  * This accounts for the asymmetry in weight gain vs. loss processes
+
+### Phase-Specific Calculations
+* **Deficit Phase:** 
+  * Duration calculation includes 20% extra time to account for adaptation
+  * Weekly weight change calculation uses a decreasing efficiency factor
+* **Post-Deficit Maintenance:**
+  * Uses current weight for BMR calculation rather than initial weight
+  * Models gradual recovery from adaptation (25% recovery per week)
+* **Reverse Diet:**
+  * Uses current weight for BMR calculation
+  * Models continuing adaptation recovery
+  * Accounts for preferential fat storage in surplus with a 90% efficiency factor
+* **New Maintenance:**
+  * Uses final weight for BMR calculation
+  * Assumes full recovery from metabolic adaptation
+
+### Scientific Basis
+This modeling approach is based on research showing that:
+1. Metabolic rate decreases beyond what would be predicted by weight loss alone
+2. Efficiency of weight loss decreases over time during extended deficits
+3. The body preferentially stores energy as fat when returning to surplus after a deficit
+4. Metabolic adaptation requires time to fully recover after a deficit ends
+
+These calculations provide users with more realistic expectations for their weight loss, maintenance, and reverse dieting journey compared to simple linear calorie-to-weight models.
+
+## 8. Current Status & Known Issues
 
 *   **Core functionality** (form with start date, plan generation, basic display, charting) is implemented.
 *   **Data Storage:** Uses Upstash Redis via Vercel Marketplace.
-*   **Known Issue #1:** Plans are successfully created and stored via the API route (`create-plan/route.ts`), but the plan display page (`plan/[id]/page.tsx`) fails to retrieve/parse the data correctly, resulting in a 404. The issue appears to be related to how the data is stored in Redis - the API successfully stores the data using `redis.set(planId, planJsonString)`, but when retrieving it with `redis.get<string>(id)`, the value returned is an object rather than a string. This causes the type check `typeof planString !== 'string'` to fail. This might be related to how Upstash Redis client handles data types or serializes/deserializes data.
-*   **Known Issue #2:** The logs show: "Value retrieved from Redis was not a string (type: object). Returning null." This suggests that the Upstash Redis client might be automatically parsing the JSON string into an object during retrieval, while the code expects to receive a string that needs to be manually parsed.
+*   **Fixed Issue:** ~~Plans are successfully created and stored via the API route (`create-plan/route.ts`), but the plan display page (`plan/[id]/page.tsx`) fails to retrieve/parse the data correctly, resulting in a 404.~~ This issue has been resolved by updating the Redis client initialization to explicitly use the Vercel KV environment variables and modifying the retrieval code to handle both string and object types returned from Redis.
+*   **Data Visualization:** The chart now includes:
+    * Phase background shading to visually distinguish different phases of the diet plan
+    * Extended timeline showing 8 weeks beyond the plan end date
+    * Improved text contrast for better readability
 *   Minor browser console warnings related to CSS parsing (`-webkit-text-size-adjust`, `-moz-osx-font-smoothing`) and font preloading exist but are unrelated to core functionality issues. 
