@@ -44,10 +44,11 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error("Error creating plan:", error);
-    let errorMessage = 'Internal Server Error';
-    if (error instanceof Error) {
-        errorMessage = error.message;
-    }
+    // Removed unused errorMessage variable assignment
+    // let errorMessage = 'Internal Server Error';
+    // if (error instanceof Error) {
+    //     errorMessage = error.message;
+    // }
     // Avoid leaking detailed internal errors to the client
     return NextResponse.json({ error: 'Failed to create plan.' }, { status: 500 });
   }

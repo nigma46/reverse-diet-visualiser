@@ -15,7 +15,7 @@ import {
     ChartOptions,
     ChartData
 } from 'chart.js';
-import { FullPlan, WeeklyPlan } from '@/types';
+import { FullPlan } from '@/types';
 
 // Register Chart.js components
 ChartJS.register(
@@ -33,18 +33,6 @@ interface PlanChartProps {
   planData: FullPlan;
   currentWeekNumber?: number;
 }
-
-// Helper to get phase background color
-const getPhaseBackgroundColor = (phaseName: WeeklyPlan['phaseName']): string => {
-    switch (phaseName) {
-        case 'Initial Maintenance': return 'rgba(200, 200, 200, 0.1)'; // Light grey
-        case 'Calorie Deficit': return 'rgba(255, 99, 132, 0.1)'; // Light red
-        case 'Post-Deficit Maintenance': return 'rgba(255, 159, 64, 0.1)'; // Light orange
-        case 'Reverse Diet': return 'rgba(75, 192, 192, 0.1)'; // Light teal
-        case 'New Maintenance': return 'rgba(54, 162, 235, 0.1)'; // Light blue
-        default: return 'rgba(0, 0, 0, 0)';
-    }
-};
 
 const PlanChart: React.FC<PlanChartProps> = ({ planData, currentWeekNumber }) => {
 
@@ -96,7 +84,10 @@ const PlanChart: React.FC<PlanChartProps> = ({ planData, currentWeekNumber }) =>
                     // Add phase name to tooltip
                     title: (tooltipItems) => {
                         const index = tooltipItems[0].dataIndex;
-                        return `Week ${planData[index].weekNumber} (${planData[index].phaseName})`;
+                        // Ensure planData[index] exists before accessing properties
+                        const weekData = planData[index];
+                        if (!weekData) return ''; 
+                        return `Week ${weekData.weekNumber} (${weekData.phaseName})`;
                     },
                     // You can customize label formatting here if needed
                 }

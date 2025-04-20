@@ -87,7 +87,13 @@ export default function HomePage() {
         'targetFinalMaintenanceCalories', 'weeklyReverseIncreaseKcal'
     ];
 
-    const missingFields = requiredFields.filter(field => !(field in formData) || formData[field] === '' || formData[field] === null || (typeof formData[field] === 'number' && isNaN(Number(formData[field]))));
+    // Check for missing fields (not present, null, or undefined) or invalid numbers (NaN)
+    const missingFields = requiredFields.filter(field =>
+        !(field in formData) || // Field is not present
+        formData[field] === null || // Field is explicitly null
+        formData[field] === undefined || // Field is undefined (e.g., cleared number input)
+        (typeof formData[field] === 'number' && isNaN(Number(formData[field]))) // Field is NaN
+    );
 
     if (missingFields.length > 0) {
       setError(`Please fill out all required fields: ${missingFields.join(', ')}`);
@@ -121,8 +127,12 @@ export default function HomePage() {
         throw new Error('No plan ID received from server');
       }
 
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+          setError(err.message);
+      } else {
+          setError('An unexpected error occurred');
+      }
       console.error('Form submission error:', err);
     } finally {
       setIsLoading(false);

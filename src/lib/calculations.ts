@@ -1,4 +1,4 @@
-import { PlanInput, WeeklyPlan, ActivityLevel, Sex, FullPlan } from '../types';
+import { PlanInput, ActivityLevel, Sex, FullPlan } from '../types';
 
 // Constants
 const KCAL_PER_KG_FAT = 7700;
@@ -43,7 +43,8 @@ function addDaysAndFormat(date: Date, days: number): string {
 // Main function to generate the full reverse diet plan
 export function generatePlan(input: PlanInput): FullPlan {
   const plan: FullPlan = [];
-  let currentDate = new Date(); // Start from today
+  // eslint-disable-next-line prefer-const
+  let currentDate = new Date(); // Start from today - needs to be mutated
   let currentWeekNumber = 1;
   let cumulativeWeightChangeKg = 0;
   let currentWeightKg = input.weightKg;
