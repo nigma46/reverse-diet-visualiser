@@ -11,9 +11,10 @@ import {
     Title,
     Tooltip,
     Legend,
-    Filler, // For filling area under line or between lines
+    Filler,
     ChartOptions,
-    ChartData
+    ChartData,
+    Plugin
 } from 'chart.js';
 import { FullPlan } from '@/types';
 
@@ -34,16 +35,139 @@ interface PlanChartProps {
   currentWeekNumber?: number;
 }
 
-const PlanChart: React.FC<PlanChartProps> = ({ planData, currentWeekNumber }) => {
+// Function to get phase-specific colors
+const getPhaseColor = (phaseName: string): string => {
+  switch (phaseName) {
+    case 'Initial Maintenance':
+      return 'rgba(54, 162, 235, 0.1)'; // Light blue
+    case 'Calorie Deficit':
+      return 'rgba(255, 99, 132, 0.1)'; // Light red
+    case 'Post-Deficit Maintenance':
+      return 'rgba(255, 159, 64, 0.1)'; // Light orange
+    case 'Reverse Diet':
+      return 'rgba(75, 192, 192, 0.1)'; // Light teal
+    case 'New Maintenance':
+      return 'rgba(153, 102, 255, 0.1)'; // Light purple
+    default:
+      return 'rgba(201, 203, 207, 0.1)'; // Light grey
+  }
+};
 
-    const labels = planData.map(week => `Week ${week.weekNumber}`);
+const PlanChart: React.FC<PlanChartProps> = ({ planData, currentWeekNumber }) => {
+    // Create extended data to show 8 more weeks beyond plan end
+    const extendedPlanData = [...planData];
+    
+    // Get the last week's data
+    const lastWeek = planData[planData.length - 1];
+    const phase = lastWeek.phaseName;
+    
+    // Add 8 more weeks with the same phase and values as the last week
+    for (let i = 1; i <= 8; i++) {
+        const weekNumber = lastWeek.weekNumber + i;
+        
+        // Calculate new dates (add 7 days for each week)
+        const startDate = new Date(lastWeek.endDate);
+        startDate.setDate(startDate.getDate() + 1 + (i-1) * 7);
+        
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 6);
+        
+        // Format dates as YYYY-MM-DD
+        const formatDate = (date: Date) => {
+            return date.toISOString().split('T')[0];
+        };
+        
+        extendedPlanData.push({
+            ...lastWeek,
+            weekNumber,
+            startDate: formatDate(startDate),
+            endDate: formatDate(endDate),
+            calorieChangeFromPreviousWeek: 0
+        });
+    }
+
+    const labels = extendedPlanData.map(week => `Week ${week.weekNumber}`);
+
+    // Create plugin for phase background shading
+    const phaseBackgroundPlugin: Plugin<'line'> = {
+        id: 'phaseBackground',
+        beforeDraw(chart) {
+            const { ctx, chartArea, scales } = chart;
+            if (!chartArea) return;
+            
+            let currentPhase = '';
+            let startX = chartArea.left;
+            
+            // Go through each week and draw background colors for phases
+            extendedPlanData.forEach((week, index) => {
+                // If phase changes or it's the last data point, draw the previous phase area
+                if (week.phaseName !== currentPhase || index === extendedPlanData.length - 1) {
+                    if (currentPhase !== '') {
+                        // Calculate end X position (either current data point or chart right edge)
+                        const endX = index === extendedPlanData.length - 1 
+                            ? chartArea.right 
+                            : scales.x.getPixelForValue(index - 0.5); // Position between points
+                        
+                        // Draw the background
+                        ctx.fillStyle = getPhaseColor(currentPhase);
+                        ctx.fillRect(startX, chartArea.top, endX - startX, chartArea.height);
+                        
+                        // Add a vertical line between phases (optional)
+                        if (index < extendedPlanData.length - 1) {
+                            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(endX, chartArea.top);
+                            ctx.lineTo(endX, chartArea.bottom);
+                            ctx.stroke();
+                        }
+                    }
+                    
+                    // Start a new phase
+                    currentPhase = week.phaseName;
+                    startX = index === 0 
+                        ? chartArea.left 
+                        : scales.x.getPixelForValue(index - 0.5); // Position between points
+                }
+            });
+
+            // Add phase labels (optional)
+            let labelPhase = '';
+            let labelStartX = chartArea.left;
+            let labelMiddleX = chartArea.left;
+            
+            extendedPlanData.forEach((week, index) => {
+                if (week.phaseName !== labelPhase || index === extendedPlanData.length - 1) {
+                    if (labelPhase !== '') {
+                        const labelEndX = index === extendedPlanData.length - 1 
+                            ? chartArea.right 
+                            : scales.x.getPixelForValue(index - 0.5);
+                        
+                        // Calculate the middle of the phase for label placement
+                        labelMiddleX = labelStartX + (labelEndX - labelStartX) / 2;
+                        
+                        // Draw phase label at the top of the chart
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                        ctx.font = '10px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(labelPhase, labelMiddleX, chartArea.top - 5);
+                    }
+                    
+                    labelPhase = week.phaseName;
+                    labelStartX = index === 0 
+                        ? chartArea.left 
+                        : scales.x.getPixelForValue(index - 0.5);
+                }
+            });
+        }
+    };
 
     const chartData: ChartData<'line'> = {
         labels,
         datasets: [
             {
                 label: 'Target Calories (kcal)',
-                data: planData.map(week => week.targetCalories),
+                data: extendedPlanData.map(week => week.targetCalories),
                 borderColor: 'rgb(54, 162, 235)', // Blue
                 backgroundColor: 'rgba(54, 162, 235, 0.5)',
                 yAxisID: 'y', // Use the primary Y axis
@@ -53,7 +177,7 @@ const PlanChart: React.FC<PlanChartProps> = ({ planData, currentWeekNumber }) =>
             },
             {
                 label: 'Estimated Weight (kg)',
-                data: planData.map(week => parseFloat(week.estimatedEndWeightKg.toFixed(1))), // Round for display
+                data: extendedPlanData.map(week => parseFloat(week.estimatedEndWeightKg.toFixed(1))), // Round for display
                 borderColor: 'rgb(255, 99, 132)', // Red
                 backgroundColor: 'rgba(255, 99, 132, 0.5)',
                 yAxisID: 'y1', // Use the secondary Y axis
@@ -84,20 +208,13 @@ const PlanChart: React.FC<PlanChartProps> = ({ planData, currentWeekNumber }) =>
                     // Add phase name to tooltip
                     title: (tooltipItems) => {
                         const index = tooltipItems[0].dataIndex;
-                        // Ensure planData[index] exists before accessing properties
-                        const weekData = planData[index];
+                        // Ensure extendedPlanData[index] exists before accessing properties
+                        const weekData = extendedPlanData[index];
                         if (!weekData) return ''; 
                         return `Week ${weekData.weekNumber} (${weekData.phaseName})`;
                     },
-                    // You can customize label formatting here if needed
                 }
             },
-             // Basic phase background coloring (more advanced needs plugins)
-             // This is a simplified approach, might not be perfect for transitions
-             // background color plugin would be better for distinct phase blocks
-            // filler: {
-            //     propagate: true,
-            // },
         },
         scales: {
             x: {
@@ -105,6 +222,10 @@ const PlanChart: React.FC<PlanChartProps> = ({ planData, currentWeekNumber }) =>
                     display: true,
                     text: 'Week of Plan'
                 },
+                grid: {
+                    display: true,
+                    drawOnChartArea: false, // only draw grid lines at tick marks
+                }
             },
             y: { // Primary Y Axis (Calories)
                 type: 'linear' as const,
@@ -115,8 +236,8 @@ const PlanChart: React.FC<PlanChartProps> = ({ planData, currentWeekNumber }) =>
                     text: 'Daily Calories (kcal)',
                 },
                 // Suggest min/max based on data range + padding
-                 suggestedMin: Math.min(...planData.map(w => w.targetCalories)) - 100,
-                 suggestedMax: Math.max(...planData.map(w => w.targetCalories)) + 100,
+                suggestedMin: Math.min(...extendedPlanData.map(w => w.targetCalories)) - 200,
+                suggestedMax: Math.max(...extendedPlanData.map(w => w.targetCalories)) + 200,
             },
             y1: { // Secondary Y Axis (Weight)
                 type: 'linear' as const,
@@ -131,31 +252,19 @@ const PlanChart: React.FC<PlanChartProps> = ({ planData, currentWeekNumber }) =>
                     drawOnChartArea: false, // only want the grid lines for one axis to show
                 },
                 // Suggest min/max based on data range + padding
-                 suggestedMin: Math.min(...planData.map(w => w.estimatedEndWeightKg)) - 2,
-                 suggestedMax: Math.max(...planData.map(w => w.estimatedEndWeightKg)) + 2,
+                suggestedMin: Math.min(...extendedPlanData.map(w => w.estimatedEndWeightKg)) - 3,
+                suggestedMax: Math.max(...extendedPlanData.map(w => w.estimatedEndWeightKg)) + 3,
             },
         },
-        // --- Attempt at background shading per phase (Basic) ---
-        // Note: This approach colors the *points*, not the background area between grid lines.
-        // A dedicated plugin (like chartjs-plugin-annotation) is better for block shading.
-        // elements: {
-        //     point: {
-        //         backgroundColor: (ctx) => {
-        //             const weekData = planData[ctx.dataIndex];
-        //             if (!weekData) return 'grey'; 
-        //             // Keep highlight for current week
-        //             if (ctx.dataIndex + 1 === currentWeekNumber) {
-        //                  return ctx.datasetIndex === 0 ? 'rgb(54, 162, 235)' : 'rgb(255, 99, 132)';
-        //             }
-        //             return getPhaseBackgroundColor(weekData.phaseName).replace('0.1', '0.7'); // Use slightly darker for points
-        //         },
-        //     }
-        // }
     };
 
     return (
-        <div style={{ height: '400px' }}> {/* Set container height for maintainAspectRatio: false */}
-            <Line options={options} data={chartData} />
+        <div style={{ height: '500px' }}> {/* Increased height for better visualization */}
+            <Line 
+                options={options} 
+                data={chartData} 
+                plugins={[phaseBackgroundPlugin]} 
+            />
         </div>
     );
 };

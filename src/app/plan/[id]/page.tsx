@@ -117,21 +117,21 @@ export default async function PlanPage(props: PlanPageProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* ... stats divs using restored currentWeek/nextWeek ... */}
                <div className="text-center p-4 bg-white rounded shadow">
-                  <p className="text-sm text-gray-500">Target Calories (Daily)</p>
+                  <p className="text-sm text-gray-700">Target Calories (Daily)</p>
                   <p className="text-2xl font-bold">{currentWeek.targetCalories} kcal</p>
               </div>
               <div className="text-center p-4 bg-white rounded shadow">
-                  <p className="text-sm text-gray-500">Upcoming Change</p>
+                  <p className="text-sm text-gray-700">Upcoming Change</p>
                   <p className={`text-2xl font-bold ${nextWeek && nextWeek.calorieChangeFromPreviousWeek && nextWeek.calorieChangeFromPreviousWeek > 0 ? 'text-green-600' : nextWeek && nextWeek.calorieChangeFromPreviousWeek && nextWeek.calorieChangeFromPreviousWeek < 0 ? 'text-red-600' : 'text-gray-700'}`}>
                       {nextWeek?.calorieChangeFromPreviousWeek ? `${nextWeek.calorieChangeFromPreviousWeek > 0 ? '+' : ''}${nextWeek.calorieChangeFromPreviousWeek} kcal` : 'None'}
                   </p>
               </div>
               <div className="text-center p-4 bg-white rounded shadow">
-                  <p className="text-sm text-gray-500">Weeks Left in Phase</p>
+                  <p className="text-sm text-gray-700">Weeks Left in Phase</p>
                   <p className="text-2xl font-bold">{weeksRemainingInPhase -1}</p> {/* -1 because current week is included */} 
               </div>
               <div className="text-center p-4 bg-white rounded shadow">
-                  <p className="text-sm text-gray-500">Weeks Left in Plan</p>
+                  <p className="text-sm text-gray-700">Weeks Left in Plan</p>
                   <p className="text-2xl font-bold">{weeksRemainingTotal -1}</p> {/* -1 because current week is included */} 
               </div>
           </div>
@@ -140,7 +140,7 @@ export default async function PlanPage(props: PlanPageProps) {
       {/* Restore original logic for showing message when not in a current week */}
        {!currentWeek && (
            <div className="mb-8 p-6 bg-gray-50 border border-gray-200 shadow-md rounded-lg">
-             <p className="text-center text-gray-600">Your planned start date ({planData[0].startDate}) is in the future, or the plan has completed.</p>
+             <p className="text-center text-gray-800">Your planned start date ({planData[0].startDate}) is in the future, or the plan has completed.</p>
            </div>
       )}
 
