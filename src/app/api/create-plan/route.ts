@@ -5,11 +5,15 @@ import { generatePlan } from '@/lib/calculations';
 import { PlanInput, FullPlan } from '@/types';
 import { nanoid } from 'nanoid';
 
-// Initialize Upstash Redis client using environment variables
+// Initialize Upstash Redis client using fromEnv() to automatically read Vercel environment variables
+const redis = Redis.fromEnv();
+/* 
+// Previous manual initialization (removed as fromEnv is preferred)
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
+*/
 
 export async function POST(request: Request) {
   console.log("--- Create Plan API Route START ---");
