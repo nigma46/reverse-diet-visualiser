@@ -59,7 +59,6 @@ const PlanChart: React.FC<PlanChartProps> = ({ planData, currentWeekNumber }) =>
     
     // Get the last week's data
     const lastWeek = planData[planData.length - 1];
-    const phase = lastWeek.phaseName;
     
     // Add 8 more weeks with the same phase and values as the last week
     for (let i = 1; i <= 8; i++) {
