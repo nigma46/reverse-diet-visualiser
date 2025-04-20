@@ -14,6 +14,7 @@ export interface PlanInput {
   heightCm: number;
   sex: Sex;
   currentMaintenanceCalories: number;
+  startDate: string; // Added: YYYY-MM-DD format
 
   // Activity Levels (Optional overrides)
   initialActivityLevel: ActivityLevel;

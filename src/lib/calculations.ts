@@ -43,8 +43,19 @@ function addDaysAndFormat(date: Date, days: number): string {
 // Main function to generate the full reverse diet plan
 export function generatePlan(input: PlanInput): FullPlan {
   const plan: FullPlan = [];
-  // eslint-disable-next-line prefer-const
-  let currentDate = new Date(); // Start from today - needs to be mutated
+  
+  // Initialize currentDate from the input startDate
+  // Ensure time component is zeroed out (start of the day)
+  const startDateInput = new Date(input.startDate + 'T00:00:00Z');
+  // Validate the parsed date before using it
+  if (isNaN(startDateInput.getTime())) {
+      console.error("Invalid start date provided:", input.startDate);
+      // Handle invalid date - perhaps throw an error or default?
+      // Throwing an error is safer to indicate bad input.
+      throw new Error("Invalid start date format. Please use YYYY-MM-DD.");
+  }
+  let currentDate = startDateInput;
+  
   let currentWeekNumber = 1;
   let cumulativeWeightChangeKg = 0;
   let currentWeightKg = input.weightKg;

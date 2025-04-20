@@ -69,10 +69,16 @@ export default function HomePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Initialize with default values for required fields to aid validation
+  
+  // Get tomorrow's date in YYYY-MM-DD format for the default start date
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const defaultStartDate = tomorrow.toISOString().split('T')[0];
+
   const [formData, setFormData] = useState<Partial<PlanInput>>({
       sex: 'female', // Default example
-      initialActivityLevel: 'lightlyActive' // Default example
+      initialActivityLevel: 'lightlyActive', // Default example
+      startDate: defaultStartDate // Default start date to tomorrow
   });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -84,7 +90,8 @@ export default function HomePage() {
     const requiredFields: (keyof PlanInput)[] = [
         'age', 'weightKg', 'heightCm', 'sex', 'currentMaintenanceCalories',
         'initialActivityLevel', 'targetWeightLossKg', 'dailyDeficitKcal',
-        'targetFinalMaintenanceCalories', 'weeklyReverseIncreaseKcal'
+        'targetFinalMaintenanceCalories', 'weeklyReverseIncreaseKcal',
+        'startDate' // Added startDate to required fields
     ];
 
     // Check for missing fields (not present, null, or undefined) or invalid numbers (NaN)
@@ -92,8 +99,12 @@ export default function HomePage() {
         !(field in formData) || // Field is not present
         formData[field] === null || // Field is explicitly null
         formData[field] === undefined || // Field is undefined (e.g., cleared number input)
+        formData[field] === '' || // Added check for empty string (relevant for date input)
         (typeof formData[field] === 'number' && isNaN(Number(formData[field]))) // Field is NaN
     );
+
+    // Add validation for start date format if needed (basic check covered by required)
+    // Example: if (formData.startDate && !/^\d{4}-\d{2}-\d{2}$/.test(formData.startDate)) { ... }
 
     if (missingFields.length > 0) {
       setError(`Please fill out all required fields: ${missingFields.join(', ')}`);
@@ -143,8 +154,9 @@ export default function HomePage() {
     const { name, value, type } = e.target;
 
     let processedValue: string | number | undefined = value;
+    // Keep date type as string, process numbers
     if (type === 'number') {
-      processedValue = value === '' ? undefined : Number(value); // Store empty number fields as undefined
+      processedValue = value === '' ? undefined : Number(value);
     }
 
     setFormData(prev => ({
@@ -179,6 +191,15 @@ export default function HomePage() {
                 onChange={handleChange}
                 value={formData.currentMaintenanceCalories}
                 description="Your best estimate of the daily calories needed to maintain your current weight."
+            />
+            <InputField
+                label="Plan Start Date"
+                id="startDate"
+                type="date" // Use date input type
+                required
+                onChange={handleChange}
+                value={formData.startDate}
+                description="The date you want the plan to begin."
             />
         </fieldset>
 

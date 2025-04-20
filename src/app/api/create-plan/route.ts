@@ -29,10 +29,11 @@ export async function POST(request: Request) {
       !inputData.sex ||
       !inputData.currentMaintenanceCalories || inputData.currentMaintenanceCalories <= 0 ||
       !inputData.initialActivityLevel ||
-      !inputData.targetWeightLossKg || inputData.targetWeightLossKg < 0 || // Allow 0 target loss
+      !inputData.targetWeightLossKg || inputData.targetWeightLossKg < 0 ||
       !inputData.dailyDeficitKcal || inputData.dailyDeficitKcal <= 0 ||
       !inputData.targetFinalMaintenanceCalories || inputData.targetFinalMaintenanceCalories <= 0 ||
-      !inputData.weeklyReverseIncreaseKcal || inputData.weeklyReverseIncreaseKcal <= 0
+      !inputData.weeklyReverseIncreaseKcal || inputData.weeklyReverseIncreaseKcal <= 0 ||
+      !inputData.startDate || typeof inputData.startDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(inputData.startDate)
     ) {
       console.warn("Input validation failed:", JSON.stringify(inputData, null, 2));
       return NextResponse.json({ error: 'Invalid input data' }, { status: 400 });
