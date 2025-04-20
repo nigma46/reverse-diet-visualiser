@@ -5,8 +5,8 @@ const KCAL_PER_KG_FAT = 7700;
 const WEEKS_INITIAL_MAINTENANCE = 1;
 const WEEKS_POST_DEFICIT_MAINTENANCE = 2;
 // Metabolic adaptation constants
-const ADAPTATION_RATE = 0.1; // 10% adaptation per month (adjust as needed)
-const MAX_ADAPTATION = 0.25; // Maximum 25% adaptation
+const ADAPTATION_RATE = 0.05; // 5% adaptation per month (reduced from 10%)
+const MAX_ADAPTATION = 0.15; // Maximum 15% adaptation (reduced from 25%)
 
 // Activity Level Multipliers (Standard)
 const activityMultipliers: Record<ActivityLevel, number> = {
@@ -40,9 +40,12 @@ function calculateTDEE(bmr: number, activityLevel: ActivityLevel): number {
 function calculateAdaptationFactor(weeksInDeficit: number): number {
   // Convert weeks to months for calculation
   const monthsInDeficit = weeksInDeficit / 4.33;
-  // Calculate adaptation percentage (capped at MAX_ADAPTATION)
-  const adaptationPercentage = Math.min(ADAPTATION_RATE * monthsInDeficit, MAX_ADAPTATION);
-  // Return factor to multiply with TDEE (e.g., 0.9 for 10% adaptation)
+  
+  // More gradual adaptation curve with slower initial adaptation
+  // Apply square root to create a more gradual curve
+  const adaptationPercentage = Math.min(ADAPTATION_RATE * Math.sqrt(monthsInDeficit), MAX_ADAPTATION);
+  
+  // Return factor to multiply with TDEE (e.g., 0.95 for 5% adaptation)
   return 1 - adaptationPercentage;
 }
 
@@ -118,10 +121,9 @@ export function generatePlan(input: PlanInput): FullPlan {
   
   // Calculate deficit duration based on target weight loss
   // We need to account for metabolic adaptation in this calculation
-  // For simplicity, we'll use the original calculation but add 20% more weeks
-  // to account for the slowing effect of adaptation
+  // With reduced adaptation rate, we only need to add 10% to the duration
   let deficitDurationWeeks = Math.ceil(
-    (input.targetWeightLossKg * KCAL_PER_KG_FAT) / (input.dailyDeficitKcal * 7) * 1.2
+    (input.targetWeightLossKg * KCAL_PER_KG_FAT) / (input.dailyDeficitKcal * 7) * 1.1
   );
   
   // Ensure we have a minimum and maximum reasonable duration
@@ -135,13 +137,12 @@ export function generatePlan(input: PlanInput): FullPlan {
     const startDate = addDaysAndFormat(currentDate, 0);
     const endDate = addDaysAndFormat(currentDate, 6);
     
-    // Calculate weekly energy balance with adapted TDEE
     const weeklyBalance = (deficitCalories * 7) - (adaptedTdee * 7);
     
     // Calculate weekly weight change with a variable efficiency factor
     // As deficit increases in duration, the efficiency of fat loss decreases
-    // and more weight comes from lean mass (which requires less energy)
-    const efficiencyFactor = Math.max(0.85, 1 - (i * 0.005)); // Starts at 1.0, decreases by 0.5% per week
+    // but at a more moderate rate than before
+    const efficiencyFactor = Math.max(0.9, 1 - (i * 0.003)); // Starts at 1.0, decreases by 0.3% per week, min 90%
     const adjustedKcalPerKg = KCAL_PER_KG_FAT * efficiencyFactor;
     const weeklyWeightChange = weeklyBalance / adjustedKcalPerKg;
     
@@ -183,8 +184,8 @@ export function generatePlan(input: PlanInput): FullPlan {
 
    for (let i = 0; i < WEEKS_POST_DEFICIT_MAINTENANCE; i++) {
      // During maintenance, adaptation gradually recovers
-     // Start with adaptation from end of deficit and recover by 25% per week
-     const remainingAdaptation = calculateAdaptationFactor(deficitDurationWeeks) * Math.pow(0.75, i);
+     // With our reduced adaptation, recovery is faster - 33% per week
+     const remainingAdaptation = calculateAdaptationFactor(deficitDurationWeeks) * Math.pow(0.67, i);
      const recoveryFactor = 1 - (1 - remainingAdaptation) / 2; // Partial recovery
      const postDeficitTdee = basePostDeficitTdee * recoveryFactor;
      
@@ -245,7 +246,8 @@ export function generatePlan(input: PlanInput): FullPlan {
     // During reverse dieting, adaptation continues to recover
     // Start with adaptation from end of post-deficit phase and recover more
     const weeksAfterDeficit = WEEKS_POST_DEFICIT_MAINTENANCE + i;
-    const reverseRecoveryFactor = Math.min(1.0, 0.9 + (weeksAfterDeficit * 0.01)); // Gradually approaches 1.0
+    // Faster recovery with reduced adaptation - reaches near-normal faster
+    const reverseRecoveryFactor = Math.min(1.0, 0.95 + (weeksAfterDeficit * 0.015)); // Gradually approaches 1.0
     const reverseTdee = baseReverseTdee * reverseRecoveryFactor;
 
     const startDate = addDaysAndFormat(currentDate, 0);
