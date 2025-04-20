@@ -43,7 +43,7 @@ const InputField: React.FC<InputFieldProps> = ({ label, id, type, required, onCh
                 required={required}
                 onChange={onChange}
                 value={value || ''}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
             >
                 {children}
             </select>
@@ -58,7 +58,7 @@ const InputField: React.FC<InputFieldProps> = ({ label, id, type, required, onCh
                 min={min}
                 step={step}
                 placeholder={placeholder}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             />
         )}
          {description && <p className="mt-1 text-xs text-gray-500">{description}</p>}
